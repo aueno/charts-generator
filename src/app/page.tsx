@@ -60,10 +60,10 @@ export default function DashboardPage() {
                     <Tabs defaultValue="Histogram" className="space-y-4">
                         <TabsList>
                             <TabsTrigger value="Histogram">
-                            Histogram
+                            ヒストグラム作成
                             </TabsTrigger>
                             <TabsTrigger value="Ca">
-                                Correlation analysis
+                             相関分析
                             </TabsTrigger>
                         </TabsList>
                         <TabsContent value="Histogram" className="space-y-4">

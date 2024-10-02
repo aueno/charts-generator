@@ -184,8 +184,8 @@ export default function ScatterPlot() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>変量1</TableHead>
-                                    <TableHead>変量2</TableHead>
+                                    <TableHead>{xLabel}</TableHead>
+                                    <TableHead>{yLabel}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
