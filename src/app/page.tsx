@@ -20,6 +20,7 @@ import Link from "next/link"
 
 import Histogram from "./components/histogram";
 import Ca from "./components/ca";
+import Ra from "./components/ra";
 
 import { useEffect, useState } from "react";
 
@@ -51,19 +52,24 @@ export default function DashboardPage() {
             <div className="flex-col md:flex">
                 
                 <div className="flex-1 space-y-4 p-8 pt-6">
-                    <div className="flex items-center justify-between space-y-2">
-                        <h2 className="text-3xl font-bold tracking-tight">Chart Maker 2024</h2>
+                    <div className="space-y-2">
+                        <h2 className="text-3xl font-bold tracking-tight">統 計 解 析 シ ス テ ム</h2>
+                        <h3 className="text-2xl font-semibold tracking-tight">Statistical Analysis System</h3>
                         <div className="flex items-center space-x-2">
                             {/* <Button>Button</Button> */}
                         </div>
+                        <hr />
                     </div>
                     <Tabs defaultValue="Histogram" className="space-y-4">
                         <TabsList>
                             <TabsTrigger value="Histogram">
-                            ヒストグラム作成
+                            度数分布・ヒストグラム
                             </TabsTrigger>
                             <TabsTrigger value="Ca">
-                             相関分析
+                             散布図・相関分析
+                            </TabsTrigger>
+                            <TabsTrigger value="Ra">
+                             回帰分析（線形近似）
                             </TabsTrigger>
                         </TabsList>
                         <TabsContent value="Histogram" className="space-y-4">
@@ -86,6 +92,18 @@ export default function DashboardPage() {
                                     </CardHeader>
                                     <CardContent className="relative">
                                         <Ca />
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </TabsContent>
+                        <TabsContent value="Ra" className="space-y-4">
+                            <div className="">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>回帰分析（線形近似）</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="relative">
+                                        <Ra />
                                     </CardContent>
                                 </Card>
                             </div>

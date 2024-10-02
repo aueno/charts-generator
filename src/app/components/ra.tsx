@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
     ScatterChart,
     Scatter,
+    Line,
     XAxis,
     YAxis,
     CartesianGrid,
@@ -48,6 +49,9 @@ export default function ScatterPlot() {
     const [xColumn, setXColumn] = useState(1);
     const [yColumn, setYColumn] = useState(2);
 
+    const [predX, setPredX] = useState(0);
+    const [predY, setPredY] = useState(0);
+
     useEffect(() => {
         const newData = textArea
             .split("\n")
@@ -60,6 +64,7 @@ export default function ScatterPlot() {
                 };
             });
         setScatterData(newData);
+
     }, [textArea, xColumn, yColumn]);
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,20 +79,25 @@ export default function ScatterPlot() {
         reader.readAsText(file, "UTF-8");
     };
 
-    // 統計処理
-    const aveX = scatterData.reduce((acc, cur) => acc + cur.x, 0) / scatterData.length;
-    const aveY = scatterData.reduce((acc, cur) => acc + cur.y, 0) / scatterData.length;
-    const aveXY = scatterData.reduce((acc, cur) => acc + cur.x * cur.y, 0) / scatterData.length;
-    const stdX = Math.sqrt(
-        scatterData.reduce((acc, cur) => acc + (cur.x - aveX) ** 2, 0) / scatterData.length
-    );
-    const stdY = Math.sqrt(
-        scatterData.reduce((acc, cur) => acc + (cur.y - aveY) ** 2, 0) / scatterData.length
-    );
-    // 共分散
-    const covXY = aveXY - aveX * aveY;
-    // 相関係数
-    const corXY = covXY / (stdX * stdY);
+    // 最小二乗法
+    const n = scatterData.length;
+    const sumX = scatterData.reduce((acc, data) => acc + data.x, 0);
+    const sumY = scatterData.reduce((acc, data) => acc + data.y, 0);
+    const sumXX = scatterData.reduce((acc, data) => acc + data.x * data.x, 0);
+    const sumXY = scatterData.reduce((acc, data) => acc + data.x * data.y, 0);
+    const ta = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+    const a = Math.round(ta * 1000) / 1000;
+    const tb = (sumY - a * sumX) / n;
+    const b = Math.round(tb * 1000) / 1000;
+
+    // 線形近似データ
+    const xMin = Math.min(...scatterData.map(d => d.x));
+    const xMax = Math.max(...scatterData.map(d => d.x));
+    const linearData = [
+        { x: xMin, y: a * xMin + b },
+        { x: (xMin + xMax) / 2, y: a * (xMin + xMax) / 2 + b },
+        { x: xMax, y: a * xMax + b }
+    ];
 
     return (
         <>
@@ -211,14 +221,7 @@ export default function ScatterPlot() {
                     <CardContent className="relative">
                         <div>
                             <ResponsiveContainer width="100%" height={400}>
-                                <ScatterChart
-                                    margin={{
-                                        top: 20,
-                                        right: 20,
-                                        bottom: 20,
-                                        left: 20,
-                                    }}
-                                >
+                                <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                                     <CartesianGrid />
                                     <XAxis
                                         type="number"
@@ -234,13 +237,57 @@ export default function ScatterPlot() {
                                     />
                                     <Tooltip cursor={{ strokeDasharray: "3 3" }} />
                                     <Scatter name="Data points" data={scatterData} fill="#8884d8" />
+                                    <Scatter data={linearData} fill="#ff7300" line/>
                                 </ScatterChart>
                             </ResponsiveContainer>
                         </div>
                         <div>
-                            <label className="text-2xl">相関係数</label>
-                            <p className="text-2xl">このデータにおける<b>相関係数は，{Math.round(corXY * 1000) / 1000}</b>です．</p>
+                            <label className="text-2xl">線形近似</label>
+                            <p className="text-2xl">このデータにおける線形近似式は，<InlineMath>{`y = ${a}x + ${b}`}</InlineMath>&nbsp;です．</p>
                             <br />
+                            <p> &nbsp; </p>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+            <br />
+            <p> &nbsp; </p>
+            <div>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>線形回帰モデルによる値予測</CardTitle>
+                    </CardHeader>
+                    <CardContent className="relative">
+                        <div>
+                            <label className="text-lg"><InlineMath>x</InlineMath>から<InlineMath>y</InlineMath>を予測する</label>
+                            <Input
+                                className="w-20"
+                                type="number"
+                                onChange={(e) => {
+                                    const x = Number(e.target.value);
+                                    const y = a * x + b;
+                                    setPredY(y);
+                                }}
+                            />
+                            <br />
+                            <p className="text-lg">予測された<InlineMath>y</InlineMath>の値：{predY}</p>
+                            <p> &nbsp; </p>
+                        </div>
+                        <hr />
+                        <div>
+                            <p> &nbsp; </p>
+                            <label className="text-lg"><InlineMath>y</InlineMath>から<InlineMath>x</InlineMath>を予測する</label>
+                            <Input
+                                className="w-20"
+                                type="number"
+                                onChange={(e) => {
+                                    const y = Number(e.target.value);
+                                    const x = (y - b) / a;
+                                    setPredX(x);
+                                }}
+                            />
+                            <br />
+                            <p className="text-lg">予測された<InlineMath>x</InlineMath>の値：{predX}</p>
                             <p> &nbsp; </p>
                         </div>
                     </CardContent>

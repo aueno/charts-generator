@@ -73,29 +73,34 @@ export default function Histogram() {
         }
         const max = Math.max(...inputData);
         const min = Math.min(...inputData);
-        
+
         // 階級の幅は自動または手動設定された上限値を使って計算
         const limits = showClassLimitForm ? classLimits : Array.from({ length: kaikyu }, (_, i) => min + (max - min) / kaikyu * (i + 1));
-    
+
         const dosuu = Array.from({ length: kaikyu }, (_, i) => {
             const start = i === 0 ? min : limits[i - 1];
             const end = i === kaikyu - 1 ? max : limits[i];
+            classLimits[i] = end;
             const count = inputData.filter((data) => (i === kaikyu - 1 ? (start <= data && data <= end) : (start <= data && data < end))).length;
-            return {
-                count,
-                range: `${start.toFixed(1)}以上${i === kaikyu - 1 ? `${end.toFixed(1)}以下` : `${end.toFixed(1)}未満`}`
-            };
+            if (typeof start !== "undefined" && typeof end !== "undefined") {
+                return {
+                    count,
+                    range: `${start.toFixed(1)}以上${i === kaikyu - 1 ? `${end.toFixed(1)}以下` : `${end.toFixed(1)}未満`}`
+                };
+            } else {
+                return { count, range: "" };
+            }
         });
         setDosuu(dosuu);
-    
+
         const average = inputData.reduce((acc, cur) => acc + cur, 0) / inputData.length;
         setAverage(average);
-    
+
         const sortedData = inputData.sort((a, b) => a - b);
         const mid = Math.floor(sortedData.length / 2);
         const median = sortedData.length % 2 === 0 ? (sortedData[mid - 1] + sortedData[mid]) / 2 : sortedData[mid];
         setMedian(median);
-    
+
         // 最頻値
         const mode = inputData.reduce((acc, cur) => {
             acc[cur] = (acc[cur] || 0) + 1;
@@ -104,7 +109,7 @@ export default function Histogram() {
         const maxCount = Math.max(...Object.values(mode));
         const modeData = Object.entries(mode).find(([_, count]) => count === maxCount);
         setMode(Number(modeData?.[0]) || 0);
-    }, [inputData, kaikyu, classLimits, showClassLimitForm]);    
+    }, [inputData, kaikyu, classLimits, showClassLimitForm]);
 
     const handleClassLimitChange = (index: number, value: number) => {
         const newLimits = [...classLimits];
@@ -116,10 +121,14 @@ export default function Histogram() {
     const getRangeLabel = (value: number) => {
         const range = dosuu.find((data) => {
             const [start, end] = data.range.split("以上");
-            if (end.includes("以下")) {
-                return Number(start) <= value && value <= Number(end.replace("以下", ""));
+            if (typeof end !== "undefined") {
+                if (end.includes("以下")) {
+                    return Number(start) <= value && value <= Number(end.replace("以下", ""));
+                } else {
+                    return Number(start) <= value && value < Number(end.replace("未満", ""));
+                }
             } else {
-                return Number(start) <= value && value < Number(end.replace("未満", ""));
+                return false;
             }
         });
         return range ? range.range : 0;
@@ -139,7 +148,7 @@ export default function Histogram() {
                     数値（データ）を改行またはカンマ区切りで入力してください．
                 </p>
                 <p className="text-sm">
-                    現在,<b>{inputData.length}</b> 個のデータが入力されています．
+                    現在, <b>{inputData.length}</b> 個のデータが入力されています．
                 </p>
                 <br />
             </div>
@@ -255,4 +264,3 @@ export default function Histogram() {
         </>
     );
 }
-
