@@ -39,7 +39,17 @@ import { Input } from "@/components/ui/input"
 import 'katex/dist/katex.min.css';
 import { InlineMath, BlockMath } from 'react-katex';
 
+import Swal from 'sweetalert2'
+import withReactContent from 'sweetalert2-react-content'
+import AOS from 'aos';
+import 'aos/dist/aos.css';
+
 export default function ScatterPlot() {
+
+    useEffect(() => {
+        AOS.init();
+      },[]);
+
     const [textArea, setTextArea] = useState("");
     const [scatterData, setScatterData] = useState<{ x: number; y: number }[]>([]);
 
@@ -98,6 +108,26 @@ export default function ScatterPlot() {
         { x: (xMin + xMax) / 2, y: a * (xMin + xMax) / 2 + b },
         { x: xMax, y: a * xMax + b }
     ];
+
+    // OKボタンは緑色にする
+    const showSwalS = () => {
+        withReactContent(Swal).fire({
+            title: "すばらしい！",
+            text: "予測が完了しました．",
+            icon: "success",
+            confirmButtonColor: "green"
+        })
+        setShowPredX(true);
+      }
+    const showSwalE = () => {
+        withReactContent(Swal).fire({
+            title: "警告",
+            text: "値は半角数字で入力してください．",
+            icon: "error",
+            confirmButtonColor: "#df4740"
+        })
+      }
+    const [showPredX, setShowPredX] = useState(false);
 
     return (
         <>
@@ -186,7 +216,7 @@ export default function ScatterPlot() {
             </div>
             <br />
             <p> &nbsp; </p>
-            <div>
+            <div data-aos="fade-up">
                 <Card>
                     <CardHeader>
                         <CardTitle>Data Table</CardTitle>
@@ -213,7 +243,7 @@ export default function ScatterPlot() {
             </div>
             <br />
             <p> &nbsp; </p>
-            <div>
+            <div data-aos="flip-left">
                 <Card>
                     <CardHeader>
                         <CardTitle>グラフ・計算結果出力</CardTitle>
@@ -252,7 +282,7 @@ export default function ScatterPlot() {
             </div>
             <br />
             <p> &nbsp; </p>
-            <div>
+            <div data-aos="zoom-in">
                 <Card>
                     <CardHeader>
                         <CardTitle>線形回帰モデルによる値予測</CardTitle>
@@ -279,15 +309,20 @@ export default function ScatterPlot() {
                             <label className="text-lg"><InlineMath>y</InlineMath>から<InlineMath>x</InlineMath>を予測する</label>
                             <Input
                                 className="w-20"
-                                type="number"
                                 onChange={(e) => {
+                                    if (isNaN(Number(e.target.value)) && e.target.value !== "" && e.target.value !== "-") {
+                                        showSwalE();
+                                        return;
+                                    }
                                     const y = Number(e.target.value);
                                     const x = (y - b) / a;
                                     setPredX(x);
+                                    setShowPredX(false);
                                 }}
                             />
                             <br />
-                            <p className="text-lg">予測された<InlineMath>x</InlineMath>の値：{predX}</p>
+                            <Button onClick={showSwalS}>予測実行</Button>
+                            {showPredX && <p className="text-lg">予測された<InlineMath>x</InlineMath>の値：{predX}</p>}
                             <p> &nbsp; </p>
                         </div>
                     </CardContent>
