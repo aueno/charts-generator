@@ -14,7 +14,7 @@ const notojp = Noto_Sans_JP({
 
 export const metadata: Metadata = {
   title: "統計解析システム",
-  description: "This is an online teaching material (Web application) for data science education for high school students.",
+  description: "高校生向けのデータサイエンス教育のためのオンライン教材（Webアプリケーション）として開発しました．度数分布表（ヒストグラム）生成，散布図・相関分析，回帰分析（最小二乗法）などの機能があります．",
 };
 
 export default function RootLayout({
@@ -26,6 +26,7 @@ export default function RootLayout({
   const year = now.getFullYear();
   return (
     <html lang="ja">
+      <meta name="google-site-verification" content="ooDp7hdOd9opoE9GzdznpYfsuS-FSnbwSRMKSu2S5EY" />
       <body className={notojp.className}>{children}
         <footer>
           <hr />
