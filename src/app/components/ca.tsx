@@ -41,6 +41,7 @@ import { InlineMath, BlockMath } from 'react-katex';
 export default function ScatterPlot() {
     const [textArea, setTextArea] = useState("");
     const [scatterData, setScatterData] = useState<{ x: number; y: number }[]>([]);
+    const [columnNames, setColumnNames] = useState<string[]>([]);
 
     const [xLabel, setXLabel] = useState("X軸");
     const [yLabel, setYLabel] = useState("Y軸");
@@ -49,16 +50,32 @@ export default function ScatterPlot() {
     const [yColumn, setYColumn] = useState(2);
 
     useEffect(() => {
-        const newData = textArea
-            .split("\n")
-            .filter((line) => line.trim() !== "")
-            .map((line) => {
-                const columns = line.split(/[\s,]+/).map(Number);
-                return {
-                    x: columns[xColumn - 1],
-                    y: columns[yColumn - 1],
-                };
-            });
+        const lines = textArea.trim().split("\n");
+        if (lines.length === 0) return;
+
+        const firstLine = lines[0].split(/[\s,]+/);
+        const isFirstLineNumeric = firstLine.every(val => !isNaN(Number(val)));
+
+        let dataStartIndex = 0;
+        if (!isFirstLineNumeric) {
+            setColumnNames(firstLine);
+            setXLabel(firstLine[xColumn - 1] || "X軸");
+            setYLabel(firstLine[yColumn - 1] || "Y軸");
+            dataStartIndex = 1;
+        } else {
+            setColumnNames([]);
+            setXLabel("X軸");
+            setYLabel("Y軸");
+        }
+
+        const newData = lines.slice(dataStartIndex).map(line => {
+            const values = line.split(/[\s,]+/).map(Number);
+            return {
+                x: values[xColumn - 1],
+                y: values[yColumn - 1]
+            };
+        });
+
         setScatterData(newData);
     }, [textArea, xColumn, yColumn]);
 
@@ -103,7 +120,9 @@ export default function ScatterPlot() {
                     データを変量間はカンマ区切り，データ間は改行で入力してください．
                 </p>
                 <p className="text-sm">
-                    現在，<b>{scatterData.length}</b> 組のデータが入力されています．
+                    現在，<b>
+                        {textArea === "" ? 0 : scatterData.length}
+                    </b> 組のデータが入力されています．
                 </p>
                 <br />
             </div>
@@ -185,8 +204,8 @@ export default function ScatterPlot() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>{xLabel}</TableHead>
-                                    <TableHead>{yLabel}</TableHead>
+                                    <TableHead>{columnNames[xColumn - 1] || xLabel}</TableHead>
+                                    <TableHead>{columnNames[yColumn - 1] || yLabel}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -223,14 +242,14 @@ export default function ScatterPlot() {
                                     <XAxis
                                         type="number"
                                         dataKey="x"
-                                        name={xLabel}
-                                        label={{ value: xLabel, position: "insideBottom", offset: -10 }}
+                                        name={columnNames[xColumn - 1] || xLabel}
+                                        label={{ value: columnNames[xColumn - 1] || xLabel, position: "insideBottom", offset: -10 }}
                                     />
                                     <YAxis
                                         type="number"
                                         dataKey="y"
-                                        name={yLabel}
-                                        label={{ value: yLabel, angle: -90, position: "insideLeft", offset: 10 }}
+                                        name={columnNames[yColumn - 1] || yLabel}
+                                        label={{ value: columnNames[yColumn - 1] || yLabel, angle: -90, position: "insideLeft", offset: 10 }}
                                     />
                                     <Tooltip cursor={{ strokeDasharray: "3 3" }} />
                                     <Scatter name="Data points" data={scatterData} fill="#8884d8" />
