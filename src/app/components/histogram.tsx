@@ -35,10 +35,15 @@ import {
 } from "@/components/ui/card"
 
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+import { useAtom } from "jotai";
+import { textAreaAtom } from "./input";
 
 export default function Histogram() {
-    const [textArea, setTextArea] = useState("");
-    const [inputData, setInputData] = useState<number[]>([]);
+    const [textArea] = useAtom(textAreaAtom);
+    const [inputData, setInputData] = useState<number[][]>([]);
+    const [columnNames, setColumnNames] = useState<string[]>([]);
     const [kaikyu, setKaikyu] = useState<number>(3);
     const [dosuu, setDosuu] = useState<{ count: number, range: string }[]>([]);
     const [average, setAverage] = useState<number>(0);
@@ -46,46 +51,51 @@ export default function Histogram() {
     const [mode, setMode] = useState<number>(0);
     const [classLimits, setClassLimits] = useState<number[]>([]);
     const [showClassLimitForm, setShowClassLimitForm] = useState(false);
+    const [selectedColumn, setSelectedColumn] = useState<number>(0);
 
     useEffect(() => {
-        const newData = textArea
-            .split(/[\s,]+/)
-            .filter((data) => data.trim() !== "")
-            .map((data) => Number(data));
-        setInputData(newData);
+        const rows = textArea.trim().split('\n');
+        const firstRow = rows[0].split(/[,\s]+/);
+        
+        // Check if the first row contains column names
+        const hasColumnNames = firstRow.some(item => isNaN(Number(item)));
+        
+        if (hasColumnNames) {
+            setColumnNames(firstRow);
+            const newData = rows.slice(1).map(row => 
+                row.split(/[,\s]+/).map(Number).filter(num => !isNaN(num))
+            );
+            setInputData(newData);
+        } else {
+            setColumnNames([]);
+            const newData = rows.map(row => 
+                row.split(/[,\s]+/).map(Number).filter(num => !isNaN(num))
+            );
+            setInputData(newData);
+        }
     }, [textArea]);
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const content = e.target?.result;
-            if (!content) return;
-            setTextArea(String(content));
-        };
-        reader.readAsText(file, "UTF-8");
-    };
-
     useEffect(() => {
-        if (inputData.length === 0) {
+        if (inputData.length === 0 || selectedColumn < 0 || selectedColumn >= inputData[0].length) {
             return;
         }
-        const max = Math.max(...inputData);
-        const min = Math.min(...inputData);
 
-        // 階級の幅は自動または手動設定された上限値を使って計算
+        const columnData = inputData.map(row => row[selectedColumn]).filter(num => !isNaN(num));
+
+        const max = Math.max(...columnData);
+        const min = Math.min(...columnData);
+
         const limits = showClassLimitForm ? classLimits : Array.from({ length: kaikyu }, (_, i) => min + (max - min) / kaikyu * (i + 1));
 
         const dosuu = Array.from({ length: kaikyu }, (_, i) => {
             const start = i === 0 ? min : limits[i - 1];
             const end = i === kaikyu - 1 ? max : limits[i];
             classLimits[i] = end;
-            const count = inputData.filter((data) => (i === kaikyu - 1 ? (start <= data && data <= end) : (start <= data && data < end))).length;
+            const count = columnData.filter((data) => (i === kaikyu - 1 ? (start <= data && data <= end) : (start <= data && data < end))).length;
             if (typeof start !== "undefined" && typeof end !== "undefined") {
                 return {
                     count,
-                    range: `${start.toFixed(1)}以上${i === kaikyu - 1 ? `${end.toFixed(1)}以下` : `${end.toFixed(1)}未満`}`
+                    range: `${start.toFixed(3)}以上${i === kaikyu - 1 ? `${end.toFixed(3)}以下` : `${end.toFixed(3)}未満`}`
                 };
             } else {
                 return { count, range: "" };
@@ -93,23 +103,22 @@ export default function Histogram() {
         });
         setDosuu(dosuu);
 
-        const average = inputData.reduce((acc, cur) => acc + cur, 0) / inputData.length;
+        const average = columnData.reduce((acc, cur) => acc + cur, 0) / columnData.length;
         setAverage(average);
 
-        const sortedData = inputData.sort((a, b) => a - b);
+        const sortedData = [...columnData].sort((a, b) => a - b);
         const mid = Math.floor(sortedData.length / 2);
         const median = sortedData.length % 2 === 0 ? (sortedData[mid - 1] + sortedData[mid]) / 2 : sortedData[mid];
         setMedian(median);
 
-        // 最頻値
-        const mode = inputData.reduce((acc, cur) => {
+        const mode = columnData.reduce((acc, cur) => {
             acc[cur] = (acc[cur] || 0) + 1;
             return acc;
         }, {} as Record<number, number>);
         const maxCount = Math.max(...Object.values(mode));
         const modeData = Object.entries(mode).find(([_, count]) => count === maxCount);
         setMode(Number(modeData?.[0]) || 0);
-    }, [inputData, kaikyu, classLimits, showClassLimitForm]);
+    }, [inputData, kaikyu, classLimits, showClassLimitForm, selectedColumn]);
 
     const handleClassLimitChange = (index: number, value: number) => {
         const newLimits = [...classLimits];
@@ -117,7 +126,6 @@ export default function Histogram() {
         setClassLimits(newLimits);
     };
 
-    // リファレンスライン軸ラベル判定関数
     const getRangeLabel = (value: number) => {
         const range = dosuu.find((data) => {
             const [start, end] = data.range.split("以上");
@@ -136,31 +144,6 @@ export default function Histogram() {
 
     return (
         <>
-            <div className="grid w-full gap-1.5">
-                <label>データセット入力</label>
-                <Textarea
-                    className="w-90"
-                    value={textArea}
-                    onChange={(e) => setTextArea(String(e.target.value))}
-                    rows={5}
-                />
-                <p className="text-sm text-muted-foreground">
-                    数値（データ）を改行またはカンマ区切りで入力してください．
-                </p>
-                <p className="text-sm">
-                    現在, <b>{inputData.length}</b> 個のデータが入力されています．
-                </p>
-                <br />
-            </div>
-            <div>
-                <label>データインポート（CSV,text[UTF-8]）</label>
-                <Input
-                    className="w-90"
-                    type="file"
-                    accept="text/csv,text/plain"
-                    onChange={handleFileUpload}
-                />
-            </div>
             <br />
             <div>
                 <label>階級数</label>
@@ -171,6 +154,27 @@ export default function Histogram() {
                     value={kaikyu}
                     onChange={(e) => setKaikyu(Number(e.target.value))}
                 />
+            </div>
+            <br />
+            <label>データ選択</label>
+            <div className="flex items-center space-x-2">
+                <Select onValueChange={(value) => setSelectedColumn(Number(value))}>
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="列を選択" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {columnNames.length > 0 ? (
+                            columnNames.map((name, index) => (
+                                <SelectItem key={index} value={index.toString()}>{name}</SelectItem>
+                            ))
+                        ) : (
+                            inputData[0]?.map((_, index) => (
+                                <SelectItem key={index} value={index.toString()}>{`列 ${index + 1}`}</SelectItem>
+                            ))
+                        )}
+                    </SelectContent>
+                </Select>
+                &nbsp; について，ヒストグラムを描画する
             </div>
             <br />
             <div>
@@ -226,9 +230,8 @@ export default function Histogram() {
                     <Legend />
                     <Bar dataKey="count" fill="#8884d8" />
 
-                    {/* Determine the ranges for average and median */}
-                    <ReferenceLine x={getRangeLabel(average)} stroke="" label={<Label value={`平均値: ${average.toFixed(2)}`} position="right" fill="blue" />} />
-                    <ReferenceLine x={getRangeLabel(median)} stroke="" label={<Label value={`中央値: ${median}`} position="left" fill="blue" />} />
+                    <ReferenceLine x={getRangeLabel(average)} stroke="" label={<Label value={`平均値: ${average.toFixed(3)}`} position="right" fill="blue" />} />
+                    <ReferenceLine x={getRangeLabel(median)} stroke="" label={<Label value={`中央値: ${median.toFixed(3)}`} position="left" fill="blue" />} />
                 </BarChart>
             </div>
             <br />
@@ -251,11 +254,11 @@ export default function Histogram() {
                         </TableHeader>
                         <TableBody>
                             <TableRow>
-                                <TableCell>{Math.max(...inputData)}</TableCell>
-                                <TableCell>{Math.min(...inputData)}</TableCell>
-                                <TableCell>{average.toFixed(2)}</TableCell>
-                                <TableCell>{median}</TableCell>
-                                <TableCell>{mode}</TableCell>
+                                <TableCell>{Math.max(...inputData.map(row => row[selectedColumn])).toFixed(3)}</TableCell>
+                                <TableCell>{Math.min(...inputData.map(row => row[selectedColumn])).toFixed(3)}</TableCell>
+                                <TableCell>{average.toFixed(3)}</TableCell>
+                                <TableCell>{median.toFixed(3)}</TableCell>
+                                <TableCell>{mode.toFixed(3)}</TableCell>
                             </TableRow>
                         </TableBody>
                     </Table>

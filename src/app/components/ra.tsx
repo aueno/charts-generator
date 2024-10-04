@@ -31,6 +31,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
+import { Switch } from "@/components/ui/switch"
 
 
 import { Button } from "@/components/ui/button"
@@ -44,81 +45,72 @@ import withReactContent from 'sweetalert2-react-content'
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
+import { useAtom } from "jotai";
+import { textAreaAtom } from "./input";
+
 export default function ScatterPlot() {
 
     useEffect(() => {
         AOS.init();
-      },[]);
+    }, []);
 
-      const [textArea, setTextArea] = useState("");
-      const [scatterData, setScatterData] = useState<{ x: number; y: number }[]>([]);
-      const [columnNames, setColumnNames] = useState<string[]>([]);
-  
-      const [xLabel, setXLabel] = useState("X軸");
-      const [yLabel, setYLabel] = useState("Y軸");
-  
-      const [xColumn, setXColumn] = useState(1);
-      const [yColumn, setYColumn] = useState(2);
-  
-      const [predX, setPredX] = useState(0);
-      const [predY, setPredY] = useState(0);
-  
-      useEffect(() => {
-          const lines = textArea.trim().split("\n");
-          if (lines.length === 0) return;
-  
-          const firstLine = lines[0].split(/[\s,]+/);
-          const isFirstLineNumeric = firstLine.every(val => !isNaN(Number(val)));
-          
-          let dataStartIndex = 0;
-          if (!isFirstLineNumeric) {
-              setColumnNames(firstLine);
-              setXLabel(firstLine[xColumn - 1] || "X軸");
-              setYLabel(firstLine[yColumn - 1] || "Y軸");
-              dataStartIndex = 1;
-          } else {
-              setColumnNames([]);
-              setXLabel("X軸");
-              setYLabel("Y軸");
-          }
-  
-          const newData = lines.slice(dataStartIndex).map(line => {
-              const values = line.split(/[\s,]+/).map(Number);
-              return {
-                  x: values[xColumn - 1],
-                  y: values[yColumn - 1]
-              };
-          });
-  
-          setScatterData(newData);
-      }, [textArea, xColumn, yColumn]);
+    const [textArea] = useAtom(textAreaAtom);
+    const [scatterData, setScatterData] = useState<number[][]>([]);
+    const [columnNames, setColumnNames] = useState<string[]>([]);
+    const [showTable, setShowTable] = useState(false);
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const content = e.target?.result;
-            if (!content) return;
-            setTextArea(String(content));
-        };
-        reader.readAsText(file, "UTF-8");
-    };
+    const [xLabel, setXLabel] = useState("X軸");
+    const [yLabel, setYLabel] = useState("Y軸");
 
+    const [xColumn, setXColumn] = useState(1);
+    const [yColumn, setYColumn] = useState(2);
+
+    const [predX, setPredX] = useState(0);
+    const [predY, setPredY] = useState(0);
+
+    useEffect(() => {
+        const lines = textArea.trim().split("\n");
+        if (lines.length === 0) return;
+
+        const firstLine = lines[0].split(/[\s,]+/);
+        const isFirstLineNumeric = firstLine.every(val => !isNaN(Number(val)));
+
+        let dataStartIndex = 0;
+        if (!isFirstLineNumeric) {
+            setColumnNames(firstLine);
+            setXLabel(firstLine[xColumn - 1] || "X軸");
+            setYLabel(firstLine[yColumn - 1] || "Y軸");
+            dataStartIndex = 1;
+        } else {
+            setColumnNames([]);
+            setXLabel("X軸");
+            setYLabel("Y軸");
+        }
+
+        const newData = lines.slice(dataStartIndex).map(line => {
+            const values = line.split(/[\s,]+/).map(Number);
+            return values;
+        });
+
+        setScatterData(newData);
+    }, [textArea, xColumn, yColumn]);
+
+    const xData = scatterData.map(row => row[xColumn - 1]);
+    const yData = scatterData.map(row => row[yColumn - 1]);
     // 最小二乗法
     const n = scatterData.length;
-    const sumX = scatterData.reduce((acc, data) => acc + data.x, 0);
-    const sumY = scatterData.reduce((acc, data) => acc + data.y, 0);
-    const sumXX = scatterData.reduce((acc, data) => acc + data.x * data.x, 0);
-    const sumXY = scatterData.reduce((acc, data) => acc + data.x * data.y, 0);
+    const sumX = xData.reduce((acc, data) => acc + data, 0);
+    const sumY = yData.reduce((acc, data) => acc + data, 0);
+    const sumXX = xData.reduce((acc, data) => acc + data * data, 0);
+    const sumXY = scatterData.reduce((acc, data) => acc + data[xColumn - 1] * data[yColumn - 1], 0);
     const ta = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
     const a = Math.round(ta * 1000) / 1000;
     const tb = (sumY - a * sumX) / n;
     const b = Math.round(tb * 1000) / 1000;
 
     // 線形近似データ
-    const xMin = Math.min(...scatterData.map(d => d.x));
-    const xMax = Math.max(...scatterData.map(d => d.x));
+    const xMin = Math.min(...scatterData.map(d => d[xColumn - 1]));
+    const xMax = Math.max(...scatterData.map(d => d[xColumn - 1]));
     const linearData = [
         { x: xMin, y: a * xMin + b },
         { x: (xMin + xMax) / 2, y: a * (xMin + xMax) / 2 + b },
@@ -134,7 +126,7 @@ export default function ScatterPlot() {
             confirmButtonColor: "green"
         })
         setShowPredX(true);
-      }
+    }
     const showSwalE = () => {
         withReactContent(Swal).fire({
             title: "警告",
@@ -142,38 +134,11 @@ export default function ScatterPlot() {
             icon: "error",
             confirmButtonColor: "#df4740"
         })
-      }
+    }
     const [showPredX, setShowPredX] = useState(false);
 
     return (
-        <>
-            <div className="grid w-full gap-1.5">
-                <label>データセット入力</label>
-                <Textarea
-                    className="w-90"
-                    value={textArea}
-                    onChange={(e) => setTextArea(e.target.value)}
-                    rows={5}
-                />
-                <p className="text-sm text-muted-foreground">
-                    データを変量間はカンマ区切り，データ間は改行で入力してください．
-                </p>
-                <p className="text-sm">
-                    現在，<b>
-                        {textArea === "" ? 0 : scatterData.length}
-                        </b> 組のデータが入力されています．
-                </p>
-                <br />
-            </div>
-            <div>
-                <label>データインポート (CSV,text[UTF-8])</label>
-                <Input
-                    className="w-90"
-                    type="file"
-                    accept="text/csv,text/plain"
-                    onChange={handleFileUpload}
-                />
-            </div>
+        <div>
             <br />
             <div>
                 <label><InlineMath>x</InlineMath>軸ラベル</label>
@@ -225,7 +190,6 @@ export default function ScatterPlot() {
                             const tempLabel = xLabel;
                             setXLabel(yLabel);
                             setYLabel(tempLabel);
-                            setScatterData(scatterData.map((d) => ({ x: d.y, y: d.x })));
                         }}
                     >
                         <InlineMath>x</InlineMath>軸と<InlineMath>y</InlineMath>軸を入れ替え
@@ -234,33 +198,49 @@ export default function ScatterPlot() {
             </div>
             <br />
             <p> &nbsp; </p>
-            <div data-aos="fade-up">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Data Table</CardTitle>
-                    </CardHeader>
-                    <CardContent className="relative">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>{columnNames[xColumn - 1] || xLabel}</TableHead>
-                                    <TableHead>{columnNames[yColumn - 1] || yLabel}</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {scatterData.map((data, index) => (
-                                    <TableRow key={index}>
-                                        <TableCell className="font-medium">{data.x}</TableCell>
-                                        <TableCell>{data.y}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
+            <div>
+                <label>Data Tableの表示</label>
+                &nbsp;
+                <Switch
+                    checked={showTable}
+                    onCheckedChange={setShowTable}
+                />
             </div>
             <br />
             <p> &nbsp; </p>
+            {showTable && (
+                <div>
+                    <div data-aos="fade-up">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Data Table</CardTitle>
+                            </CardHeader>
+                            <CardContent className="relative">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            {columnNames.map((name, index) => (
+                                                <TableHead key={index}>{name || `列${index + 1}`}</TableHead>
+                                            ))}
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {scatterData.map((row, rowIndex) => (
+                                            <TableRow key={rowIndex}>
+                                                {row.map((value, colIndex) => (
+                                                    <TableCell key={colIndex}>{value}</TableCell>
+                                                ))}
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
+                    </div>
+                    <br />
+                    <p> &nbsp; </p>
+                </div>
+            )}
             <div data-aos="flip-left">
                 <Card>
                     <CardHeader>
@@ -284,7 +264,11 @@ export default function ScatterPlot() {
                                         label={{ value: columnNames[yColumn - 1] || yLabel, angle: -90, position: "insideLeft", offset: 10 }}
                                     />
                                     <Tooltip cursor={{ strokeDasharray: "3 3" }} />
-                                    <Scatter name="Data points" data={scatterData} fill="#8884d8" />
+                                    <Scatter
+                                        name="Data points"
+                                        data={scatterData.map(row => ({ x: row[xColumn - 1], y: row[yColumn - 1] }))}
+                                        fill="#8884d8"
+                                    />
                                     <Scatter data={linearData} fill="#ff7300" line/>
                                 </ScatterChart>
                             </ResponsiveContainer>
@@ -346,6 +330,6 @@ export default function ScatterPlot() {
                     </CardContent>
                 </Card>
             </div>
-        </>
+        </div>
     );
 }

@@ -15,33 +15,34 @@ import {
 import {
     Card,
     CardContent,
-    CardDescription,
     CardHeader,
     CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 
 import {
     Table,
     TableBody,
-    TableCaption,
     TableCell,
-    TableFooter,
     TableHead,
     TableHeader,
     TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 
-
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 import 'katex/dist/katex.min.css';
-import { InlineMath, BlockMath } from 'react-katex';
+import { InlineMath } from 'react-katex';
+
+import { useAtom } from "jotai";
+import { textAreaAtom } from "./input";
 
 export default function ScatterPlot() {
-    const [textArea, setTextArea] = useState("");
-    const [scatterData, setScatterData] = useState<{ x: number; y: number }[]>([]);
+    const [textArea] = useAtom(textAreaAtom);
+    const [scatterData, setScatterData] = useState<number[][]>([]);
     const [columnNames, setColumnNames] = useState<string[]>([]);
+    const [showTable, setShowTable] = useState(false);
 
     const [xLabel, setXLabel] = useState("X軸");
     const [yLabel, setYLabel] = useState("Y軸");
@@ -70,71 +71,25 @@ export default function ScatterPlot() {
 
         const newData = lines.slice(dataStartIndex).map(line => {
             const values = line.split(/[\s,]+/).map(Number);
-            return {
-                x: values[xColumn - 1],
-                y: values[yColumn - 1]
-            };
+            return values;
         });
 
         setScatterData(newData);
     }, [textArea, xColumn, yColumn]);
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const content = e.target?.result;
-            if (!content) return;
-            setTextArea(String(content));
-        };
-        reader.readAsText(file, "UTF-8");
-    };
+    const xData = scatterData.map(row => row[xColumn - 1]);
+    const yData = scatterData.map(row => row[yColumn - 1]);
 
-    // 統計処理
-    const aveX = scatterData.reduce((acc, cur) => acc + cur.x, 0) / scatterData.length;
-    const aveY = scatterData.reduce((acc, cur) => acc + cur.y, 0) / scatterData.length;
-    const aveXY = scatterData.reduce((acc, cur) => acc + cur.x * cur.y, 0) / scatterData.length;
-    const stdX = Math.sqrt(
-        scatterData.reduce((acc, cur) => acc + (cur.x - aveX) ** 2, 0) / scatterData.length
-    );
-    const stdY = Math.sqrt(
-        scatterData.reduce((acc, cur) => acc + (cur.y - aveY) ** 2, 0) / scatterData.length
-    );
-    // 共分散
+    const aveX = xData.reduce((acc, cur) => acc + cur, 0) / xData.length;
+    const aveY = yData.reduce((acc, cur) => acc + cur, 0) / yData.length;
+    const aveXY = scatterData.reduce((acc, cur) => acc + cur[xColumn - 1] * cur[yColumn - 1], 0) / scatterData.length;
+    const stdX = Math.sqrt(xData.reduce((acc, cur) => acc + (cur - aveX) ** 2, 0) / xData.length);
+    const stdY = Math.sqrt(yData.reduce((acc, cur) => acc + (cur - aveY) ** 2, 0) / yData.length);
     const covXY = aveXY - aveX * aveY;
-    // 相関係数
     const corXY = covXY / (stdX * stdY);
 
     return (
         <>
-            <div className="grid w-full gap-1.5">
-                <label>データセット入力</label>
-                <Textarea
-                    className="w-90"
-                    value={textArea}
-                    onChange={(e) => setTextArea(e.target.value)}
-                    rows={5}
-                />
-                <p className="text-sm text-muted-foreground">
-                    データを変量間はカンマ区切り，データ間は改行で入力してください．
-                </p>
-                <p className="text-sm">
-                    現在，<b>
-                        {textArea === "" ? 0 : scatterData.length}
-                    </b> 組のデータが入力されています．
-                </p>
-                <br />
-            </div>
-            <div>
-                <label>データインポート (CSV,text[UTF-8])</label>
-                <Input
-                    className="w-90"
-                    type="file"
-                    accept="text/csv,text/plain"
-                    onChange={handleFileUpload}
-                />
-            </div>
             <br />
             <div>
                 <label><InlineMath>x</InlineMath>軸ラベル</label>
@@ -186,7 +141,6 @@ export default function ScatterPlot() {
                             const tempLabel = xLabel;
                             setXLabel(yLabel);
                             setYLabel(tempLabel);
-                            setScatterData(scatterData.map((d) => ({ x: d.y, y: d.x })));
                         }}
                     >
                         <InlineMath>x</InlineMath>軸と<InlineMath>y</InlineMath>軸を入れ替え
@@ -194,77 +148,81 @@ export default function ScatterPlot() {
                 </div>
             </div>
             <br />
-            <p> &nbsp; </p>
             <div>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Data Table</CardTitle>
-                    </CardHeader>
-                    <CardContent className="relative">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>{columnNames[xColumn - 1] || xLabel}</TableHead>
-                                    <TableHead>{columnNames[yColumn - 1] || yLabel}</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {scatterData.map((data, index) => (
-                                    <TableRow key={index}>
-                                        <TableCell className="font-medium">{data.x}</TableCell>
-                                        <TableCell>{data.y}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
+                <label>Data Tableの表示</label>
+                <Switch
+                    checked={showTable}
+                    onCheckedChange={setShowTable}
+                />
             </div>
             <br />
-            <p> &nbsp; </p>
-            <div>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>グラフ・計算結果出力</CardTitle>
-                    </CardHeader>
-                    <CardContent className="relative">
-                        <div>
-                            <ResponsiveContainer width="100%" height={400}>
-                                <ScatterChart
-                                    margin={{
-                                        top: 20,
-                                        right: 20,
-                                        bottom: 20,
-                                        left: 20,
-                                    }}
-                                >
-                                    <CartesianGrid />
-                                    <XAxis
-                                        type="number"
-                                        dataKey="x"
-                                        name={columnNames[xColumn - 1] || xLabel}
-                                        label={{ value: columnNames[xColumn - 1] || xLabel, position: "insideBottom", offset: -10 }}
-                                    />
-                                    <YAxis
-                                        type="number"
-                                        dataKey="y"
-                                        name={columnNames[yColumn - 1] || yLabel}
-                                        label={{ value: columnNames[yColumn - 1] || yLabel, angle: -90, position: "insideLeft", offset: 10 }}
-                                    />
-                                    <Tooltip cursor={{ strokeDasharray: "3 3" }} />
-                                    <Scatter name="Data points" data={scatterData} fill="#8884d8" />
-                                </ScatterChart>
-                            </ResponsiveContainer>
-                        </div>
-                        <div>
+            {showTable && (
+                <div>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Data Table</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        {columnNames.map((name, index) => (
+                                            <TableHead key={index}>{name || `列${index + 1}`}</TableHead>
+                                        ))}
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {scatterData.map((row, rowIndex) => (
+                                        <TableRow key={rowIndex}>
+                                            {row.map((value, colIndex) => (
+                                                <TableCell key={colIndex}>{value}</TableCell>
+                                            ))}
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+            <br />
+            <Card>
+                <CardHeader>
+                    <CardTitle>グラフ・計算結果出力</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <ResponsiveContainer width="100%" height={400}>
+                        <ScatterChart
+                            margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                        >
+                            <CartesianGrid />
+                            <XAxis
+                                type="number"
+                                dataKey="x"
+                                name={columnNames[xColumn - 1] || xLabel}
+                                label={{ value: columnNames[xColumn - 1] || xLabel, position: "insideBottom", offset: -10 }}
+                            />
+                            <YAxis
+                                type="number"
+                                dataKey="y"
+                                name={columnNames[yColumn - 1] || yLabel}
+                                label={{ value: columnNames[yColumn - 1] || yLabel, angle: -90, position: "insideLeft", offset: 10 }}
+                            />
+                            <Tooltip cursor={{ strokeDasharray: "3 3" }} />
+                            <Scatter
+                                data={scatterData.map(row => ({ x: row[xColumn - 1], y: row[yColumn - 1] }))}
+                                fill="#8884d8"
+                            />
+                        </ScatterChart>
+                    </ResponsiveContainer>
+                    <div>
                             <label className="text-2xl">相関係数</label>
                             <p className="text-2xl">このデータにおける<b>相関係数は，{Math.round(corXY * 1000) / 1000}</b>です．</p>
                             <br />
                             <p> &nbsp; </p>
                         </div>
-                    </CardContent>
-                </Card>
-            </div>
+                </CardContent>
+            </Card>
         </>
     );
 }

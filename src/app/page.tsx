@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/tabs"
 import Link from "next/link"
 
+import InputForm from "./components/input";
 import Histogram from "./components/histogram";
 import Ca from "./components/ca";
 import Ra from "./components/ra";
@@ -50,7 +51,7 @@ export default function DashboardPage() {
                 />
             </div> */}
             <div className="flex-col md:flex">
-                
+
                 <div className="flex-1 space-y-4 p-8 pt-6">
                     <div className="space-y-2">
                         <h2 className="text-3xl font-bold tracking-tight">統 計 解 析 シ ス テ ム</h2>
@@ -60,16 +61,25 @@ export default function DashboardPage() {
                         </div>
                         <hr />
                     </div>
+                    <br />
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>データ入力フォーム</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <InputForm />
+                        </CardContent>
+                    </Card>
                     <Tabs defaultValue="Histogram" className="space-y-4">
                         <TabsList>
                             <TabsTrigger value="Histogram">
-                            度数分布・ヒストグラム
+                                度数分布・ヒストグラム
                             </TabsTrigger>
                             <TabsTrigger value="Ca">
-                             散布図・相関分析
+                                散布図・相関分析
                             </TabsTrigger>
                             <TabsTrigger value="Ra">
-                             回帰分析（線形近似）
+                                回帰分析（線形近似）
                             </TabsTrigger>
                         </TabsList>
                         <TabsContent value="Histogram" className="space-y-4">
