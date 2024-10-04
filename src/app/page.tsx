@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/tabs"
 import Link from "next/link"
 
+import Howto from "./components/howto";
 import InputForm from "./components/input";
 import Histogram from "./components/histogram";
 import Ca from "./components/ca";
@@ -72,6 +73,9 @@ export default function DashboardPage() {
                     </Card>
                     <Tabs defaultValue="Histogram" className="space-y-4">
                         <TabsList>
+                            <TabsTrigger value="Howto">
+                                アプリの使い方
+                            </TabsTrigger>
                             <TabsTrigger value="Histogram">
                                 度数分布・ヒストグラム
                             </TabsTrigger>
@@ -79,9 +83,21 @@ export default function DashboardPage() {
                                 散布図・相関分析
                             </TabsTrigger>
                             <TabsTrigger value="Ra">
-                                回帰分析（線形近似）
+                                線形回帰
                             </TabsTrigger>
                         </TabsList>
+                        <TabsContent value="Howto" className="space-y-4">
+                            <div className="">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>このアプリの使い方</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Howto />
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </TabsContent>
                         <TabsContent value="Histogram" className="space-y-4">
                             <div className="">
                                 <Card>
@@ -110,7 +126,7 @@ export default function DashboardPage() {
                             <div className="">
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle>回帰分析（線形近似）</CardTitle>
+                                        <CardTitle>線形回帰</CardTitle>
                                     </CardHeader>
                                     <CardContent className="relative">
                                         <Ra />
