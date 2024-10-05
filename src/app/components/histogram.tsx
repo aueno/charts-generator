@@ -48,7 +48,8 @@ export default function Histogram() {
     const [dosuu, setDosuu] = useState<{ count: number, range: string }[]>([]);
     const [average, setAverage] = useState<number>(0);
     const [median, setMedian] = useState<number>(0);
-    const [mode, setMode] = useState<number>(0);
+    const [mode, setMode] = useState<number[] | null>(null);
+    const [std, setStd] = useState<number>(0);
     const [classLimits, setClassLimits] = useState<number[]>([]);
     const [showClassLimitForm, setShowClassLimitForm] = useState(false);
     const [selectedColumn, setSelectedColumn] = useState<number>(0);
@@ -56,19 +57,18 @@ export default function Histogram() {
     useEffect(() => {
         const rows = textArea.trim().split('\n');
         const firstRow = rows[0].split(/[,\s]+/);
-        
-        // Check if the first row contains column names
+
         const hasColumnNames = firstRow.some(item => isNaN(Number(item)));
-        
+
         if (hasColumnNames) {
             setColumnNames(firstRow);
-            const newData = rows.slice(1).map(row => 
+            const newData = rows.slice(1).map(row =>
                 row.split(/[,\s]+/).map(Number).filter(num => !isNaN(num))
             );
             setInputData(newData);
         } else {
             setColumnNames([]);
-            const newData = rows.map(row => 
+            const newData = rows.map(row =>
                 row.split(/[,\s]+/).map(Number).filter(num => !isNaN(num))
             );
             setInputData(newData);
@@ -111,13 +111,32 @@ export default function Histogram() {
         const median = sortedData.length % 2 === 0 ? (sortedData[mid - 1] + sortedData[mid]) / 2 : sortedData[mid];
         setMedian(median);
 
-        const mode = columnData.reduce((acc, cur) => {
-            acc[cur] = (acc[cur] || 0) + 1;
-            return acc;
-        }, {} as Record<number, number>);
-        const maxCount = Math.max(...Object.values(mode));
-        const modeData = Object.entries(mode).find(([_, count]) => count === maxCount);
-        setMode(Number(modeData?.[0]) || 0);
+        const frequencyMap = new Map();
+        columnData.forEach(value => {
+            frequencyMap.set(value, (frequencyMap.get(value) || 0) + 1);
+        });
+
+        let maxFrequency = 0;
+        let modeValues: number[] = [];
+
+        frequencyMap.forEach((frequency, value) => {
+            if (frequency > maxFrequency) {
+                maxFrequency = frequency;
+                modeValues = [value];
+            } else if (frequency === maxFrequency && frequency > 1) {
+                modeValues.push(value);
+            }
+        });
+
+        if (maxFrequency === 1) {
+            setMode(null);
+        } else {
+            setMode(modeValues.sort((a, b) => a - b));
+        }
+
+        const std = Math.sqrt(columnData.reduce((acc, cur) => acc + (cur - average) ** 2, 0) / columnData.length);
+        setStd(std);
+
     }, [inputData, kaikyu, classLimits, showClassLimitForm, selectedColumn]);
 
     const handleClassLimitChange = (index: number, value: number) => {
@@ -178,7 +197,7 @@ export default function Histogram() {
             </div>
             <br />
             <div>
-                <label>階級範囲を手動で設定しますか？</label>
+                <label>階級レンジを手動で設定 &nbsp;</label>
                 <Switch
                     checked={showClassLimitForm}
                     onCheckedChange={setShowClassLimitForm}
@@ -250,6 +269,7 @@ export default function Histogram() {
                                 <TableHead>平均値</TableHead>
                                 <TableHead>中央値</TableHead>
                                 <TableHead>最頻値</TableHead>
+                                <TableHead>標準偏差</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -258,7 +278,12 @@ export default function Histogram() {
                                 <TableCell>{Math.min(...inputData.map(row => row[selectedColumn])).toFixed(3)}</TableCell>
                                 <TableCell>{average.toFixed(3)}</TableCell>
                                 <TableCell>{median.toFixed(3)}</TableCell>
-                                <TableCell>{mode.toFixed(3)}</TableCell>
+                                <TableCell>
+                                    {mode !== null
+                                        ? mode.map(m => m.toFixed(3)).join(', ')
+                                        : 'N/A'}
+                                </TableCell>
+                                <TableCell>{std.toFixed(3)}</TableCell>
                             </TableRow>
                         </TableBody>
                     </Table>

@@ -31,10 +31,12 @@
     "react-dom": "^18",
     "react-katex": "^3.0.1",
     "recharts": "^2.12.7",
+    "shadcn-ui": "^0.9.2",
     "sweetalert2": "^11.6.13",
     "sweetalert2-react-content": "^5.0.7",
     "tailwind-merge": "^2.4.0",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "yui-lint": "^0.2.0"
   },
   "devDependencies": {
     "@types/aos": "^3.0.7",
