@@ -199,12 +199,14 @@ export default function ScatterPlot() {
                             <XAxis
                                 type="number"
                                 dataKey="x"
+                                domain={['auto', 'auto']}
                                 name={columnNames[xColumn - 1] || xLabel}
                                 label={{ value: columnNames[xColumn - 1] || xLabel, position: "insideBottom", offset: -10 }}
                             />
                             <YAxis
                                 type="number"
                                 dataKey="y"
+                                domain={['auto', 'auto']}
                                 name={columnNames[yColumn - 1] || yLabel}
                                 label={{ value: columnNames[yColumn - 1] || yLabel, angle: -90, position: "insideLeft", offset: 10 }}
                             />
