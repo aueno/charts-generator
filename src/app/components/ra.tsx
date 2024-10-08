@@ -108,6 +108,16 @@ export default function ScatterPlot() {
     const tb = (sumY - a * sumX) / n;
     const b = Math.round(tb * 1000) / 1000;
 
+    // 決定係数
+    const aveX = sumX / n;
+    const aveY = sumY / n;
+    const aveXY = sumXY / n;
+    const stdX = Math.sqrt(xData.reduce((acc, data) => acc + (data - aveX) ** 2, 0) / n);
+    const stdY = Math.sqrt(yData.reduce((acc, data) => acc + (data - aveY) ** 2, 0) / n);
+    const covXY = aveXY - aveX * aveY;
+    const corXY = covXY / (stdX * stdY);
+    const rpow2 = Math.round(corXY ** 2 * 1000) / 1000;
+
     // 線形近似データ
     const xMin = Math.min(...scatterData.map(d => d[xColumn - 1]));
     const xMax = Math.max(...scatterData.map(d => d[xColumn - 1]));
@@ -276,8 +286,11 @@ export default function ScatterPlot() {
                             </ResponsiveContainer>
                         </div>
                         <div>
-                            <label className="text-2xl">線形近似</label>
-                            <p className="text-2xl">このデータにおける線形近似式は，<InlineMath>{`y = ${a}x + ${b}`}</InlineMath>&nbsp;です．</p>
+                            <label className="text-2xl">回帰直線</label>
+                            <p className="text-2xl">このデータにおける回帰直線式は，<InlineMath>{`y = ${a}x + ${b}`}</InlineMath>&nbsp;です．</p>
+                            <br />
+                            <label className="text-2xl">決定係数（<InlineMath>R^2</InlineMath>）</label>
+                            <p className="text-2xl">上記回帰式の決定係数は，<InlineMath>{`${rpow2}`}</InlineMath>です．</p>
                             <br />
                             <p> &nbsp; </p>
                         </div>
@@ -331,6 +344,8 @@ export default function ScatterPlot() {
                         </div>
                     </CardContent>
                 </Card>
+                <br />
+                <p> &nbsp; </p>
             </div>
         </div>
     );

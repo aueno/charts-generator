@@ -83,7 +83,7 @@ export default function DashboardPage() {
                                 散布図・相関分析
                             </TabsTrigger>
                             <TabsTrigger value="Ra">
-                                線形回帰
+                                単回帰分析
                             </TabsTrigger>
                         </TabsList>
                         <TabsContent value="Howto" className="space-y-4">
@@ -126,7 +126,7 @@ export default function DashboardPage() {
                             <div className="">
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle>線形回帰</CardTitle>
+                                        <CardTitle>線形回帰（単回帰）</CardTitle>
                                     </CardHeader>
                                     <CardContent className="relative">
                                         <Ra />
