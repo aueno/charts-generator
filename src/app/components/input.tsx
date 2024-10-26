@@ -22,7 +22,7 @@ export default function InputForm() {
             if (!content) return;
             setTextArea(String(content));
         };
-        reader.readAsText(file, "Shift_JIS");
+        reader.readAsText(file, "UTF-8");
     };
     
 
