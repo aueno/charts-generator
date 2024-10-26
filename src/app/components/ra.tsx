@@ -40,8 +40,6 @@ import { Input } from "@/components/ui/input"
 import 'katex/dist/katex.min.css';
 import { InlineMath, BlockMath } from 'react-katex';
 
-import Swal from 'sweetalert2'
-import withReactContent from 'sweetalert2-react-content'
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
@@ -127,24 +125,6 @@ export default function ScatterPlot() {
         { x: xMax, y: a * xMax + b }
     ];
 
-    // OKボタンは緑色にする
-    const showSwalS = () => {
-        withReactContent(Swal).fire({
-            title: "すばらしい！",
-            text: "予測が完了しました．",
-            icon: "success",
-            confirmButtonColor: "green"
-        })
-        setShowPredX(true);
-    }
-    const showSwalE = () => {
-        withReactContent(Swal).fire({
-            title: "警告",
-            text: "値は半角数字で入力してください．",
-            icon: "error",
-            confirmButtonColor: "#df4740"
-        })
-    }
     const [showPredX, setShowPredX] = useState(false);
 
     return (
@@ -327,10 +307,6 @@ export default function ScatterPlot() {
                             <Input
                                 className="w-20"
                                 onChange={(e) => {
-                                    if (isNaN(Number(e.target.value)) && e.target.value !== "" && e.target.value !== "-") {
-                                        showSwalE();
-                                        return;
-                                    }
                                     const y = Number(e.target.value);
                                     const x = (y - b) / a;
                                     setPredX(x);
@@ -338,7 +314,6 @@ export default function ScatterPlot() {
                                 }}
                             />
                             <br />
-                            <Button onClick={showSwalS}>予測実行</Button>
                             {showPredX && <p className="text-lg">予測された<InlineMath>x</InlineMath>の値：{predX}</p>}
                             <p> &nbsp; </p>
                         </div>
