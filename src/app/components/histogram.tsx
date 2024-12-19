@@ -248,9 +248,16 @@ export default function Histogram() {
                     <Tooltip />
                     <Legend />
                     <Bar dataKey="count" fill="#8884d8" />
-
-                    <ReferenceLine x={getRangeLabel(average)} stroke="" label={<Label value={`平均値: ${average.toFixed(3)}`} position="right" fill="blue" />} />
-                    <ReferenceLine x={getRangeLabel(median)} stroke="" label={<Label value={`中央値: ${median.toFixed(3)}`} position="left" fill="blue" />} />
+                    <ReferenceLine
+                        x={getRangeLabel(average)}
+                        stroke=""
+                        label={<Label value={`平均値: ${average.toFixed(3)}`} position="right" fill="blue" />}
+                    />
+                    <ReferenceLine
+                        x={getRangeLabel(median)}
+                        stroke=""
+                        label={<Label value={`中央値: ${median.toFixed(3)}`} position="left" fill="blue" />}
+                    />
                 </BarChart>
             </div>
             <br />

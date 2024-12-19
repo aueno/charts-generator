@@ -261,7 +261,7 @@ export default function ScatterPlot() {
                                         data={scatterData.map(row => ({ x: row[xColumn - 1], y: row[yColumn - 1] }))}
                                         fill="#8884d8"
                                     />
-                                    <Scatter data={linearData} fill="#ff7300" line/>
+                                    <Scatter data={linearData} fill="#ff7300" line />
                                 </ScatterChart>
                             </ResponsiveContainer>
                         </div>
@@ -314,7 +314,7 @@ export default function ScatterPlot() {
                                 }}
                             />
                             <br />
-                            {showPredX && <p className="text-lg">予測された<InlineMath>x</InlineMath>の値：{predX}</p>}
+                            <p className="text-lg">予測された<InlineMath>x</InlineMath>の値：{predX}</p>
                             <p> &nbsp; </p>
                         </div>
                     </CardContent>

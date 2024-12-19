@@ -200,15 +200,15 @@ export default function ScatterPlot() {
                                 type="number"
                                 dataKey="x"
                                 domain={['auto', 'auto']}
-                                name={columnNames[xColumn - 1] || xLabel}
-                                label={{ value: columnNames[xColumn - 1] || xLabel, position: "insideBottom", offset: -10 }}
+                                name={columnNames[xColumn - 1] ?? xLabel}
+                                label={{ value: columnNames[xColumn - 1] ?? xLabel, position: "insideBottom", offset: -10 }}
                             />
                             <YAxis
                                 type="number"
                                 dataKey="y"
                                 domain={['auto', 'auto']}
-                                name={columnNames[yColumn - 1] || yLabel}
-                                label={{ value: columnNames[yColumn - 1] || yLabel, angle: -90, position: "insideLeft", offset: 10 }}
+                                name={columnNames[yColumn - 1] ?? yLabel}
+                                label={{ value: columnNames[yColumn - 1] ?? yLabel, angle: -90, position: "insideLeft", offset: 10 }}
                             />
                             <Tooltip cursor={{ strokeDasharray: "3 3" }} />
                             <Scatter
@@ -218,11 +218,11 @@ export default function ScatterPlot() {
                         </ScatterChart>
                     </ResponsiveContainer>
                     <div>
-                            <label className="text-2xl">相関係数</label>
-                            <p className="text-2xl">このデータにおける<b>相関係数は，{Math.round(corXY * 1000) / 1000}</b>です．</p>
-                            <br />
-                            <p> &nbsp; </p>
-                        </div>
+                        <label className="text-2xl">相関係数</label>
+                        <p className="text-2xl">このデータにおける<b>相関係数は，{Math.round(corXY * 1000) / 1000}</b>です．</p>
+                        <br />
+                        <p> &nbsp; </p>
+                    </div>
                 </CardContent>
             </Card>
         </>
