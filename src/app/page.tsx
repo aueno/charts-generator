@@ -23,6 +23,7 @@ import InputForm from "./components/input";
 import Histogram from "./components/histogram";
 import Ca from "./components/ca";
 import Ra from "./components/ra";
+import Sql from "./components/sql";
 
 import { useEffect, useState } from "react";
 
@@ -85,6 +86,9 @@ export default function DashboardPage() {
                             <TabsTrigger value="Ra">
                                 単回帰分析
                             </TabsTrigger>
+                            <TabsTrigger value="sql">
+                                SQL変換
+                            </TabsTrigger>
                         </TabsList>
                         <TabsContent value="Howto" className="space-y-4">
                             <div className="">
@@ -130,6 +134,18 @@ export default function DashboardPage() {
                                     </CardHeader>
                                     <CardContent className="relative">
                                         <Ra />
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </TabsContent>
+                        <TabsContent value="sql" className="space-y-4">
+                            <div className="">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>SQL変換</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Sql />
                                     </CardContent>
                                 </Card>
                             </div>
