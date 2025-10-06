@@ -21,6 +21,7 @@ import Link from "next/link"
 import Howto from "./components/howto";
 import InputForm from "./components/input";
 import Histogram from "./components/histogram";
+import Hakohige from "./components/hakohige";
 import Ca from "./components/ca";
 import Ra from "./components/ra";
 import Sql from "./components/sql";
@@ -80,6 +81,9 @@ export default function DashboardPage() {
                             <TabsTrigger value="Histogram">
                                 度数分布・ヒストグラム
                             </TabsTrigger>
+                            <TabsTrigger value="Hakohige">
+                                箱ひげ図
+                            </TabsTrigger>
                             <TabsTrigger value="Ca">
                                 散布図・相関分析
                             </TabsTrigger>
@@ -110,6 +114,18 @@ export default function DashboardPage() {
                                     </CardHeader>
                                     <CardContent>
                                         <Histogram />
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </TabsContent>
+                        <TabsContent value="Hakohige" className="space-y-4">
+                            <div className="">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>箱ひげ図作成</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <Hakohige />
                                     </CardContent>
                                 </Card>
                             </div>
