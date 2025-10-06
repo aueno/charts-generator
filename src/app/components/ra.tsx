@@ -36,6 +36,7 @@ import { Switch } from "@/components/ui/switch"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 import 'katex/dist/katex.min.css';
 import { InlineMath, BlockMath } from 'react-katex';
@@ -57,9 +58,6 @@ export default function ScatterPlot() {
     const [columnNames, setColumnNames] = useState<string[]>([]);
     const [showTable, setShowTable] = useState(false);
 
-    const [xLabel, setXLabel] = useState("X軸");
-    const [yLabel, setYLabel] = useState("Y軸");
-
     const [xColumn, setXColumn] = useState(1);
     const [yColumn, setYColumn] = useState(2);
 
@@ -76,13 +74,9 @@ export default function ScatterPlot() {
         let dataStartIndex = 0;
         if (!isFirstLineNumeric) {
             setColumnNames(firstLine);
-            setXLabel(firstLine[xColumn - 1] || "X軸");
-            setYLabel(firstLine[yColumn - 1] || "Y軸");
             dataStartIndex = 1;
         } else {
             setColumnNames([]);
-            setXLabel("X軸");
-            setYLabel("Y軸");
         }
 
         const newData = lines.slice(dataStartIndex).map(line => {
@@ -130,44 +124,46 @@ export default function ScatterPlot() {
     return (
         <div>
             <br />
-            <div>
-                <label><InlineMath>x</InlineMath>軸ラベル</label>
-                <Input
-                    className="w-90"
-                    value={xLabel}
-                    onChange={(e) => setXLabel(e.target.value)}
-                />
-                <br />
-                <label><InlineMath>y</InlineMath>軸ラベル</label>
-                <Input
-                    className="w-90"
-                    value={yLabel}
-                    onChange={(e) => setYLabel(e.target.value)}
-                />
-            </div>
-            <br />
             <div className="flex items-center space-x-4">
                 <div className="space-y-4">
                     <div className="flex items-center space-x-2">
-                        <Input
-                            className="w-20"
-                            type="number"
-                            min={1}
-                            value={xColumn}
-                            onChange={(e) => setXColumn(Number(e.target.value))}
-                        />
-                        <p>列目を<InlineMath>x</InlineMath>軸とする</p>
+                        <Select onValueChange={(value) => setXColumn(Number(value))}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="列を選択" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {columnNames.length > 0 ? (
+                                    columnNames.map((name, index) => (
+                                        <SelectItem key={index} value={(index + 1).toString()}>{name}</SelectItem>
+                                    ))
+                                ) : (
+                                    scatterData[0]?.map((_, index) => (
+                                        <SelectItem key={index} value={(index + 1).toString()}>{`列 ${index + 1}`}</SelectItem>
+                                    ))
+                                )}
+                            </SelectContent>
+                        </Select>
+                        <p>列（目）を<InlineMath>x</InlineMath>軸とする</p>
                     </div>
 
                     <div className="flex items-center space-x-2">
-                        <Input
-                            className="w-20"
-                            type="number"
-                            min={1}
-                            value={yColumn}
-                            onChange={(e) => setYColumn(Number(e.target.value))}
-                        />
-                        <p>列目を<InlineMath>y</InlineMath>軸とする</p>
+                        <Select onValueChange={(value) => setYColumn(Number(value))}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="列を選択" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {columnNames.length > 0 ? (
+                                    columnNames.map((name, index) => (
+                                        <SelectItem key={index} value={(index + 1).toString()}>{name}</SelectItem>
+                                    ))
+                                ) : (
+                                    scatterData[0]?.map((_, index) => (
+                                        <SelectItem key={index} value={(index + 1).toString()}>{`列 ${index + 1}`}</SelectItem>
+                                    ))
+                                )}
+                            </SelectContent>
+                        </Select>
+                        <p>列（目）を<InlineMath>y</InlineMath>軸とする</p>
                     </div>
                 </div>
 
@@ -177,9 +173,6 @@ export default function ScatterPlot() {
                             const temp = xColumn;
                             setXColumn(yColumn);
                             setYColumn(temp);
-                            const tempLabel = xLabel;
-                            setXLabel(yLabel);
-                            setYLabel(tempLabel);
                         }}
                     >
                         <InlineMath>x</InlineMath>軸と<InlineMath>y</InlineMath>軸を入れ替え
@@ -245,15 +238,15 @@ export default function ScatterPlot() {
                                         type="number"
                                         dataKey="x"
                                         domain={['auto', 'auto']}
-                                        name={columnNames[xColumn - 1] || xLabel}
-                                        label={{ value: columnNames[xColumn - 1] || xLabel, position: "insideBottom", offset: -10 }}
+                                        name={columnNames[xColumn - 1] ?? `列 ${xColumn}`}
+                                        label={{ value: columnNames[xColumn - 1] ?? `列 ${xColumn}`, position: "insideBottom", offset: -10 }}
                                     />
                                     <YAxis
                                         type="number"
                                         dataKey="y"
                                         domain={['auto', 'auto']}
-                                        name={columnNames[yColumn - 1] || yLabel}
-                                        label={{ value: columnNames[yColumn - 1] || yLabel, angle: -90, position: "insideLeft", offset: 10 }}
+                                        name={columnNames[yColumn - 1] ?? `列 ${yColumn}`}
+                                        label={{ value: columnNames[yColumn - 1] ?? `列 ${yColumn}`, angle: -90, position: "insideLeft", offset: 10 }}
                                     />
                                     <Tooltip cursor={{ strokeDasharray: "3 3" }} />
                                     <Scatter

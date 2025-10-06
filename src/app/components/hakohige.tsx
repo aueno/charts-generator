@@ -4,13 +4,13 @@ import { useState, useEffect, useRef } from "react";
 import { useAtom } from "jotai";
 import { textAreaAtom } from "./input";
 
-import { Chart as ChartJS, CategoryScale, LinearScale, Title, Tooltip as ChartTooltip } from "chart.js";
+import { Chart as ChartJS, CategoryScale, LinearScale, Title, Tooltip as ChartTooltip, PointElement, LineElement, LineController } from "chart.js";
 import { BoxPlotController, BoxAndWiskers } from "@sgratzl/chartjs-chart-boxplot";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 
-ChartJS.register(CategoryScale, LinearScale, Title, ChartTooltip, BoxPlotController, BoxAndWiskers);
+ChartJS.register(CategoryScale, LinearScale, Title, ChartTooltip, BoxPlotController, BoxAndWiskers, PointElement, LineElement, LineController);
 
 export default function BoxplotWithColumnFilter() {
     const [textArea] = useAtom(textAreaAtom);
@@ -23,6 +23,7 @@ export default function BoxplotWithColumnFilter() {
             q1: number;
             q3: number;
             median: number;
+            mean: number;
             outliers: number[];
         }[]
     >([]);
@@ -99,12 +100,15 @@ export default function BoxplotWithColumnFilter() {
             const lowerWhisker = nonOutliers.length > 0 ? nonOutliers[0] : sorted[0];
             const upperWhisker = nonOutliers.length > 0 ? nonOutliers[nonOutliers.length - 1] : sorted[sorted.length - 1];
 
+            const mean = sorted.reduce((s, v) => s + v, 0) / sorted.length;
+
             calcPerColumn.push({
                 min: lowerWhisker,
                 max: upperWhisker,
                 q1,
                 q3,
                 median,
+                mean,
                 outliers: sorted.filter((v) => v < lowerFence || v > upperFence),
             });
         }
@@ -121,6 +125,9 @@ export default function BoxplotWithColumnFilter() {
 
         const filteredLabels = columnNames.filter((_, i) => visibleColumns[i]);
         const filteredData = boxplotData.filter((_, i) => visibleColumns[i]);
+        const filteredMeans = boxplotData
+            .map((d) => d.mean)
+            .filter((_, i) => visibleColumns[i]);
 
         if (filteredData.length === 0) return;
 
@@ -131,7 +138,7 @@ export default function BoxplotWithColumnFilter() {
             type: "boxplot",
             data: {
                 labels: filteredLabels,
-                datasets: [
+                datasets: ([
                     {
                         label: "箱ひげ図",
                         backgroundColor: "#cfe4ff",
@@ -139,7 +146,18 @@ export default function BoxplotWithColumnFilter() {
                         borderWidth: 1.5,
                         data: filteredData,
                     },
-                ],
+                    {
+                        // mean points: use a line dataset with points only
+                        type: "line",
+                        label: "平均",
+                        data: filteredMeans,
+                        borderWidth: 0,
+                        showLine: false,
+                        pointBackgroundColor: "#ff4d4f",
+                        pointBorderColor: "#ff4d4f",
+                        pointRadius: 5,
+                    },
+                ] as any),
             },
             options: {
                 responsive: true,
