@@ -57,6 +57,7 @@ export default function ScatterPlot() {
     const [scatterData, setScatterData] = useState<number[][]>([]);
     const [columnNames, setColumnNames] = useState<string[]>([]);
     const [showTable, setShowTable] = useState(false);
+    const [numericColumns, setNumericColumns] = useState<boolean[]>([]);
 
     const [xColumn, setXColumn] = useState(1);
     const [yColumn, setYColumn] = useState(2);
@@ -85,16 +86,29 @@ export default function ScatterPlot() {
         });
 
         setScatterData(newData);
+
+        const numCols = newData[0]?.length || 0;
+        const numericCols = Array.from({ length: numCols }, (_, col) =>
+            newData.map(r => r[col]).filter(v => v !== undefined && Number.isFinite(v)).length > 0
+        );
+        setNumericColumns(numericCols);
+
+        const firstNumeric = numericCols.findIndex(Boolean);
+        const secondNumeric = numericCols.findIndex((v, idx) => v && idx !== firstNumeric);
+        if (firstNumeric >= 0) {
+            setXColumn(prev => (numericCols[prev - 1] ? prev : firstNumeric + 1));
+            setYColumn(prev => (numericCols[prev - 1] ? prev : (secondNumeric >= 0 ? secondNumeric + 1 : firstNumeric + 1)));
+        }
     }, [textArea, xColumn, yColumn]);
 
-    const xData = scatterData.map(row => row[xColumn - 1]);
-    const yData = scatterData.map(row => row[yColumn - 1]);
+    const xData = numericColumns[xColumn - 1] ? scatterData.map(row => row[xColumn - 1]) : [];
+    const yData = numericColumns[yColumn - 1] ? scatterData.map(row => row[yColumn - 1]) : [];
     // 最小二乗法
     const n = scatterData.length;
     const sumX = xData.reduce((acc, data) => acc + data, 0);
     const sumY = yData.reduce((acc, data) => acc + data, 0);
     const sumXX = xData.reduce((acc, data) => acc + data * data, 0);
-    const sumXY = scatterData.reduce((acc, data) => acc + data[xColumn - 1] * data[yColumn - 1], 0);
+    const sumXY = (numericColumns[xColumn - 1] && numericColumns[yColumn - 1]) ? scatterData.reduce((acc, data) => acc + data[xColumn - 1] * data[yColumn - 1], 0) : 0;
     const ta = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
     const a = Math.round(ta * 1000) / 1000;
     const tb = (sumY - a * sumX) / n;
@@ -111,8 +125,8 @@ export default function ScatterPlot() {
     const rpow2 = Math.round(corXY ** 2 * 1000) / 1000;
 
     // 線形近似データ
-    const xMin = Math.min(...scatterData.map(d => d[xColumn - 1]));
-    const xMax = Math.max(...scatterData.map(d => d[xColumn - 1]));
+    const xMin = numericColumns[xColumn - 1] ? Math.min(...scatterData.map(d => d[xColumn - 1])) : 0;
+    const xMax = numericColumns[xColumn - 1] ? Math.max(...scatterData.map(d => d[xColumn - 1])) : 0;
     const linearData = [
         { x: xMin, y: a * xMin + b },
         { x: (xMin + xMax) / 2, y: a * (xMin + xMax) / 2 + b },
@@ -132,15 +146,17 @@ export default function ScatterPlot() {
                                 <SelectValue placeholder="列を選択" />
                             </SelectTrigger>
                             <SelectContent>
-                                {columnNames.length > 0 ? (
-                                    columnNames.map((name, index) => (
-                                        <SelectItem key={index} value={(index + 1).toString()}>{name}</SelectItem>
-                                    ))
-                                ) : (
-                                    scatterData[0]?.map((_, index) => (
-                                        <SelectItem key={index} value={(index + 1).toString()}>{`列 ${index + 1}`}</SelectItem>
-                                    ))
-                                )}
+                                        {columnNames.length > 0 ? (
+                                            columnNames.map((name, index) => (
+                                                numericColumns[index] ? (
+                                                    <SelectItem key={index} value={(index + 1).toString()}>{name}</SelectItem>
+                                                ) : null
+                                            ))
+                                        ) : (
+                                            scatterData[0]?.map((_, index) => (
+                                                <SelectItem key={index} value={(index + 1).toString()}>{`列 ${index + 1}`}</SelectItem>
+                                            ))
+                                        )}
                             </SelectContent>
                         </Select>
                         <p>列（目）を<InlineMath>x</InlineMath>軸とする</p>
@@ -154,7 +170,9 @@ export default function ScatterPlot() {
                             <SelectContent>
                                 {columnNames.length > 0 ? (
                                     columnNames.map((name, index) => (
-                                        <SelectItem key={index} value={(index + 1).toString()}>{name}</SelectItem>
+                                        numericColumns[index] ? (
+                                            <SelectItem key={index} value={(index + 1).toString()}>{name}</SelectItem>
+                                        ) : null
                                     ))
                                 ) : (
                                     scatterData[0]?.map((_, index) => (
@@ -234,26 +252,26 @@ export default function ScatterPlot() {
                             <ResponsiveContainer width="100%" height={400}>
                                 <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                                     <CartesianGrid />
-                                    <XAxis
-                                        type="number"
-                                        dataKey="x"
-                                        domain={['auto', 'auto']}
-                                        name={columnNames[xColumn - 1] ?? `列 ${xColumn}`}
-                                        label={{ value: columnNames[xColumn - 1] ?? `列 ${xColumn}`, position: "insideBottom", offset: -10 }}
-                                    />
-                                    <YAxis
-                                        type="number"
-                                        dataKey="y"
-                                        domain={['auto', 'auto']}
-                                        name={columnNames[yColumn - 1] ?? `列 ${yColumn}`}
-                                        label={{ value: columnNames[yColumn - 1] ?? `列 ${yColumn}`, angle: -90, position: "insideLeft", offset: 10 }}
-                                    />
+                                            <XAxis
+                                                type="number"
+                                                dataKey="x"
+                                                domain={['auto', 'auto']}
+                                                name={numericColumns[xColumn - 1] ? columnNames[xColumn - 1] ?? `列 ${xColumn}` : ''}
+                                                label={{ value: numericColumns[xColumn - 1] ? columnNames[xColumn - 1] ?? `列 ${xColumn}` : '', position: "insideBottom", offset: -10 }}
+                                            />
+                                            <YAxis
+                                                type="number"
+                                                dataKey="y"
+                                                domain={['auto', 'auto']}
+                                                name={numericColumns[yColumn - 1] ? columnNames[yColumn - 1] ?? `列 ${yColumn}` : ''}
+                                                label={{ value: numericColumns[yColumn - 1] ? columnNames[yColumn - 1] ?? `列 ${yColumn}` : '', angle: -90, position: "insideLeft", offset: 10 }}
+                                            />
                                     <Tooltip cursor={{ strokeDasharray: "3 3" }} />
-                                    <Scatter
-                                        name="Data points"
-                                        data={scatterData.map(row => ({ x: row[xColumn - 1], y: row[yColumn - 1] }))}
-                                        fill="#8884d8"
-                                    />
+                                            <Scatter
+                                                name="Data points"
+                                                data={(numericColumns[xColumn - 1] && numericColumns[yColumn - 1]) ? scatterData.map(row => ({ x: row[xColumn - 1], y: row[yColumn - 1] })) : []}
+                                                fill="#8884d8"
+                                            />
                                     <Scatter data={linearData} fill="#ff7300" line />
                                 </ScatterChart>
                             </ResponsiveContainer>

@@ -17,7 +17,7 @@ export default function BoxplotWithColumnFilter() {
     const [inputData, setInputData] = useState<number[][]>([]);
     const [columnNames, setColumnNames] = useState<string[]>([]);
     const [boxplotData, setBoxplotData] = useState<
-        {
+        ({
             min: number;
             max: number;
             q1: number;
@@ -25,8 +25,9 @@ export default function BoxplotWithColumnFilter() {
             median: number;
             mean: number;
             outliers: number[];
-        }[]
+        } | null)[]
     >([]);
+    const [numericColumns, setNumericColumns] = useState<boolean[]>([]);
     const [visibleColumns, setVisibleColumns] = useState<boolean[]>([]);
 
     const boxplotChartRef = useRef<HTMLCanvasElement | null>(null);
@@ -36,6 +37,7 @@ export default function BoxplotWithColumnFilter() {
         if (!textArea.trim()) {
             setInputData([]);
             setColumnNames([]);
+            setNumericColumns([]);
             setVisibleColumns([]);
             return;
         }
@@ -47,17 +49,28 @@ export default function BoxplotWithColumnFilter() {
         if (hasColumnNames) {
             setColumnNames(firstRow);
             const newData = rows.slice(1).map((row) =>
-                row.split(/[,\s]+/).map(Number).filter((num) => !isNaN(num))
+                row.split(/[,\s]+/).map(Number)
             );
             setInputData(newData);
-            setVisibleColumns(new Array(firstRow.length).fill(true));
+
+            const numCols = firstRow.length;
+            const numericCols = Array.from({ length: numCols }, (_, col) =>
+                newData.map((r) => r[col]).filter((v) => v !== undefined && !isNaN(v)).length > 0
+            );
+            setNumericColumns(numericCols);
+            setVisibleColumns(numericCols.map((v) => v));
         } else {
             const newData = rows.map((row) =>
-                row.split(/[,\s]+/).map(Number).filter((num) => !isNaN(num))
+                row.split(/[,\s]+/).map(Number)
             );
             setInputData(newData);
-            setColumnNames(Array.from({ length: newData[0]?.length || 0 }, (_, i) => `列 ${i + 1}`));
-            setVisibleColumns(new Array(newData[0]?.length || 0).fill(true));
+            const numCols = newData[0]?.length || 0;
+            setColumnNames(Array.from({ length: numCols }, (_, i) => `列 ${i + 1}`));
+            const numericCols = Array.from({ length: numCols }, (_, col) =>
+                newData.map((r) => r[col]).filter((v) => v !== undefined && !isNaN(v)).length > 0
+            );
+            setNumericColumns(numericCols);
+            setVisibleColumns(numericCols.map((v) => v));
         }
     }, [textArea]);
 
@@ -67,8 +80,8 @@ export default function BoxplotWithColumnFilter() {
             return;
         }
 
-        const numCols = inputData[0].length;
-        const calcPerColumn = [];
+    const numCols = inputData[0].length;
+    const calcPerColumn: (typeof boxplotData extends (infer U)[] ? U : any)[] = [];
 
         for (let col = 0; col < numCols; col++) {
             const colValues = inputData.map((row) => row[col]).filter((v) => !isNaN(v));
@@ -113,7 +126,7 @@ export default function BoxplotWithColumnFilter() {
             });
         }
 
-        setBoxplotData(calcPerColumn.filter((d) => d !== null) as any);
+        setBoxplotData(calcPerColumn as any);
     }, [inputData]);
 
     useEffect(() => {
@@ -123,11 +136,11 @@ export default function BoxplotWithColumnFilter() {
             chartInstanceRef.current.destroy();
         }
 
-        const filteredLabels = columnNames.filter((_, i) => visibleColumns[i]);
-        const filteredData = boxplotData.filter((_, i) => visibleColumns[i]);
+        const filteredLabels = columnNames.filter((_, i) => numericColumns[i] && visibleColumns[i]);
+        const filteredData = boxplotData.filter((d, i) => numericColumns[i] && visibleColumns[i] && d !== null) as any[];
         const filteredMeans = boxplotData
-            .map((d) => d.mean)
-            .filter((_, i) => visibleColumns[i]);
+            .map((d) => (d ? d.mean : null))
+            .filter((m, i) => numericColumns[i] && visibleColumns[i] && m !== null) as number[];
 
         if (filteredData.length === 0) return;
 
@@ -174,7 +187,7 @@ export default function BoxplotWithColumnFilter() {
                 },
             },
         });
-    }, [boxplotData, columnNames, visibleColumns]);
+    }, [boxplotData, columnNames, visibleColumns, numericColumns]);
 
     const toggleColumnVisibility = (index: number) => {
         const newVisible = [...visibleColumns];
@@ -196,16 +209,18 @@ export default function BoxplotWithColumnFilter() {
             {/* チェックボックス群（グラフ下） */}
             {columnNames.length > 0 && (
                 <div className="flex flex-wrap gap-4 mt-4">
-                    {columnNames.map((name, i) => (
-                        <div key={i} className="flex items-center space-x-2">
-                            <Checkbox
-                                id={`col-${i}`}
-                                checked={visibleColumns[i]}
-                                onCheckedChange={() => toggleColumnVisibility(i)}
-                            />
-                            <Label htmlFor={`col-${i}`}>{name}</Label>
-                        </div>
-                    ))}
+                    {columnNames.map((name, i) =>
+                        numericColumns[i] ? (
+                            <div key={i} className="flex items-center space-x-2">
+                                <Checkbox
+                                    id={`col-${i}`}
+                                    checked={visibleColumns[i]}
+                                    onCheckedChange={() => toggleColumnVisibility(i)}
+                                />
+                                <Label htmlFor={`col-${i}`}>{name}</Label>
+                            </div>
+                        ) : null
+                    )}
                 </div>
             )}
         </div>

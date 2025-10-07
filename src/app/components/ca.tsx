@@ -44,6 +44,7 @@ export default function ScatterPlot() {
     const [scatterData, setScatterData] = useState<number[][]>([]);
     const [columnNames, setColumnNames] = useState<string[]>([]);
     const [showTable, setShowTable] = useState(false);
+    const [numericColumns, setNumericColumns] = useState<boolean[]>([]);
     const [order, setOrder] = useState<'asc' | 'desc'>('desc');
     const [showCount, setShowCount] = useState<number>(10);
 
@@ -74,6 +75,21 @@ export default function ScatterPlot() {
         });
 
         setScatterData(newData);
+
+        // detect numeric columns
+        const numCols = newData[0]?.length || 0;
+        const numericCols = Array.from({ length: numCols }, (_, col) =>
+            newData.map(r => r[col]).filter(v => v !== undefined && Number.isFinite(v)).length > 0
+        );
+        setNumericColumns(numericCols);
+
+        // ensure x/y selected columns point to numeric columns
+        const firstNumeric = numericCols.findIndex(Boolean);
+        const secondNumeric = numericCols.findIndex((v, idx) => v && idx !== firstNumeric);
+        if (firstNumeric >= 0) {
+            setXColumn(prev => (numericCols[prev - 1] ? prev : firstNumeric + 1));
+            setYColumn(prev => (numericCols[prev - 1] ? prev : (secondNumeric >= 0 ? secondNumeric + 1 : firstNumeric + 1)));
+        }
     }, [textArea, xColumn, yColumn]);
 
     // compute pairwise correlations whenever scatterData or columnNames change
@@ -84,10 +100,13 @@ export default function ScatterPlot() {
         }
 
         const cols = scatterData[0].length;
+        const indices = numericColumns.length > 0 ? numericColumns.map((v, i) => v ? i : -1).filter(i => i >= 0) : Array.from({ length: cols }, (_, i) => i);
         const pairs: Array<{i:number,j:number,cor:number,absCor:number,n:number}> = [];
 
-        for (let i = 0; i < cols; i++) {
-            for (let j = i + 1; j < cols; j++) {
+        for (let a = 0; a < indices.length; a++) {
+            for (let b = a + 1; b < indices.length; b++) {
+                const i = indices[a];
+                const j = indices[b];
                 const xArr: number[] = [];
                 const yArr: number[] = [];
                 for (let r = 0; r < scatterData.length; r++) {
@@ -120,10 +139,10 @@ export default function ScatterPlot() {
         }
 
         setRankedPairs(pairs);
-    }, [scatterData, columnNames]);
+    }, [scatterData, columnNames, numericColumns]);
 
-    const xData = scatterData.map(row => row[xColumn - 1]);
-    const yData = scatterData.map(row => row[yColumn - 1]);
+    const xData = numericColumns[xColumn - 1] ? scatterData.map(row => row[xColumn - 1]) : [];
+    const yData = numericColumns[yColumn - 1] ? scatterData.map(row => row[yColumn - 1]) : [];
 
     const aveX = xData.reduce((acc, cur) => acc + cur, 0) / xData.length;
     const aveY = yData.reduce((acc, cur) => acc + cur, 0) / yData.length;
@@ -149,15 +168,17 @@ export default function ScatterPlot() {
                                 <SelectValue placeholder="列を選択" />
                             </SelectTrigger>
                             <SelectContent>
-                                {columnNames.length > 0 ? (
-                                    columnNames.map((name, index) => (
-                                        <SelectItem key={index} value={(index + 1).toString()}>{name}</SelectItem>
-                                    ))
-                                ) : (
-                                    scatterData[0]?.map((_, index) => (
-                                        <SelectItem key={index} value={(index + 1).toString()}>{`列 ${index + 1}`}</SelectItem>
-                                    ))
-                                )}
+                                        {columnNames.length > 0 ? (
+                                            columnNames.map((name, index) => (
+                                                numericColumns[index] ? (
+                                                    <SelectItem key={index} value={(index + 1).toString()}>{name}</SelectItem>
+                                                ) : null
+                                            ))
+                                        ) : (
+                                            scatterData[0]?.map((_, index) => (
+                                                <SelectItem key={index} value={(index + 1).toString()}>{`列 ${index + 1}`}</SelectItem>
+                                            ))
+                                        )}
                             </SelectContent>
                         </Select>
                         <p>列（目）を<InlineMath>x</InlineMath>軸とする</p>
@@ -169,15 +190,17 @@ export default function ScatterPlot() {
                                 <SelectValue placeholder="列を選択" />
                             </SelectTrigger>
                             <SelectContent>
-                                {columnNames.length > 0 ? (
-                                    columnNames.map((name, index) => (
-                                        <SelectItem key={index} value={(index + 1).toString()}>{name}</SelectItem>
-                                    ))
-                                ) : (
-                                    scatterData[0]?.map((_, index) => (
-                                        <SelectItem key={index} value={(index + 1).toString()}>{`列 ${index + 1}`}</SelectItem>
-                                    ))
-                                )}
+                                    {columnNames.length > 0 ? (
+                                        columnNames.map((name, index) => (
+                                            numericColumns[index] ? (
+                                                <SelectItem key={index} value={(index + 1).toString()}>{name}</SelectItem>
+                                            ) : null
+                                        ))
+                                    ) : (
+                                        scatterData[0]?.map((_, index) => (
+                                            <SelectItem key={index} value={(index + 1).toString()}>{`列 ${index + 1}`}</SelectItem>
+                                        ))
+                                    )}
                             </SelectContent>
                         </Select>
                         <p>列（目）を<InlineMath>y</InlineMath>軸とする</p>
@@ -249,19 +272,19 @@ export default function ScatterPlot() {
                                 type="number"
                                 dataKey="x"
                                 domain={['auto', 'auto']}
-                                name={columnNames[xColumn - 1] ?? `列 ${xColumn}`}
-                                label={{ value: columnNames[xColumn - 1] ?? `列 ${xColumn}`, position: "insideBottom", offset: -10 }}
+                                name={numericColumns[xColumn - 1] ? columnNames[xColumn - 1] ?? `列 ${xColumn}` : ''}
+                                label={{ value: numericColumns[xColumn - 1] ? columnNames[xColumn - 1] ?? `列 ${xColumn}` : '', position: "insideBottom", offset: -10 }}
                             />
                             <YAxis
                                 type="number"
                                 dataKey="y"
                                 domain={['auto', 'auto']}
-                                name={columnNames[yColumn - 1] ?? `列 ${yColumn}`}
-                                label={{ value: columnNames[yColumn - 1] ?? `列 ${yColumn}`, angle: -90, position: "insideLeft", offset: 10 }}
+                                name={numericColumns[yColumn - 1] ? columnNames[yColumn - 1] ?? `列 ${yColumn}` : ''}
+                                label={{ value: numericColumns[yColumn - 1] ? columnNames[yColumn - 1] ?? `列 ${yColumn}` : '', angle: -90, position: "insideLeft", offset: 10 }}
                             />
                             <Tooltip cursor={{ strokeDasharray: "3 3" }} />
                             <Scatter
-                                data={scatterData.map(row => ({ x: row[xColumn - 1], y: row[yColumn - 1] }))}
+                                data={ (numericColumns[xColumn - 1] && numericColumns[yColumn - 1]) ? scatterData.map(row => ({ x: row[xColumn - 1], y: row[yColumn - 1] })) : [] }
                                 fill="#8884d8"
                             />
                         </ScatterChart>
