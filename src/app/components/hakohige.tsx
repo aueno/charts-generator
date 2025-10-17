@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAtom } from "jotai";
 import { textAreaAtom } from "./input";
+import { parseCsv } from "@/lib/parseCsv";
 
 import { Chart as ChartJS, CategoryScale, LinearScale, Title, Tooltip as ChartTooltip, PointElement, LineElement, LineController } from "chart.js";
 import { BoxPlotController, BoxAndWiskers } from "@sgratzl/chartjs-chart-boxplot";
@@ -34,44 +35,20 @@ export default function BoxplotWithColumnFilter() {
     const chartInstanceRef = useRef<ChartJS | null>(null);
 
     useEffect(() => {
-        if (!textArea.trim()) {
-            setInputData([]);
-            setColumnNames([]);
-            setNumericColumns([]);
-            setVisibleColumns([]);
-            return;
-        }
+        const { columnNames: parsedNames, inputData: parsedData } = parseCsv(textArea);
+        setColumnNames(parsedNames);
+        setInputData(parsedData);
 
-        const rows = textArea.trim().split("\n");
-        const firstRow = rows[0].split(/[,\s]+/);
-        const hasColumnNames = firstRow.some((item) => isNaN(Number(item)));
+        // DEBUG logs to observe parsing behavior in tests
+        // eslint-disable-next-line no-console
+        console.log('hakohige useEffect1', { textAreaLength: textArea.length, parsedNames, parsedDataLength: parsedData.length });
 
-        if (hasColumnNames) {
-            setColumnNames(firstRow);
-            const newData = rows.slice(1).map((row) =>
-                row.split(/[,\s]+/).map(Number)
-            );
-            setInputData(newData);
-
-            const numCols = firstRow.length;
-            const numericCols = Array.from({ length: numCols }, (_, col) =>
-                newData.map((r) => r[col]).filter((v) => v !== undefined && !isNaN(v)).length > 0
-            );
-            setNumericColumns(numericCols);
-            setVisibleColumns(numericCols.map((v) => v));
-        } else {
-            const newData = rows.map((row) =>
-                row.split(/[,\s]+/).map(Number)
-            );
-            setInputData(newData);
-            const numCols = newData[0]?.length || 0;
-            setColumnNames(Array.from({ length: numCols }, (_, i) => `列 ${i + 1}`));
-            const numericCols = Array.from({ length: numCols }, (_, col) =>
-                newData.map((r) => r[col]).filter((v) => v !== undefined && !isNaN(v)).length > 0
-            );
-            setNumericColumns(numericCols);
-            setVisibleColumns(numericCols.map((v) => v));
-        }
+        const numCols = parsedNames.length || parsedData[0]?.length || 0;
+        const numericCols = Array.from({ length: numCols }, (_, col) =>
+            parsedData.map((r) => r[col]).filter((v) => v !== undefined && !isNaN(v)).length > 0
+        );
+        setNumericColumns(numericCols);
+        setVisibleColumns(numericCols.map((v) => v));
     }, [textArea]);
 
     useEffect(() => {
