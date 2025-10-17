@@ -2,15 +2,23 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.tsx'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   moduleNameMapper: {
-  // map imports like '@/app/components/dashboard/components/input' to src/app/components/input
-  '^@/app/components/dashboard/components/(.*)$': '<rootDir>/src/app/components/$1',
-    '^@/(.*)$': '<rootDir>/src/$1',
-  '\\.(css|less|scss|sass)$': '<rootDir>/__mocks__/styleMock.js',
+    '^@/(.*)$': '<rootDir>/$1',
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
   },
   transform: {
-    '^.+\\.(ts|tsx)$': ['ts-jest', { isolatedModules: true }],
+    '^.+\\.(ts|tsx)$': [
+      'ts-jest',
+      {
+        tsconfig: 'tsconfig.json',
+        isolatedModules: true, // ← tsconfigに移しても良い
+        useESM: false,
+      },
+    ],
   },
+  transformIgnorePatterns: [
+    '/node_modules/(?!(@sgratzl|recharts|react-katex)/)', // ← 外部ESMライブラリを変換対象にする
+  ],
   testPathIgnorePatterns: ['/node_modules/', '/.next/'],
 };
